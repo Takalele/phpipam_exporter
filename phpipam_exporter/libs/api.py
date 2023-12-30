@@ -12,10 +12,9 @@ class ApiConnectionException(Exception): pass       # NOQA
 
 
 class Api:
-
     def __init__(self, api_url, response_status_parameter='success',
                  response_error_parameter='message', good_status=True,
-                 result_data_parameter='data', headers=None):
+                 result_data_parameter='data', headers=None, verify=True):
         self.api_url = api_url
         if self.api_url[-1] != '/':
             self.api_url += '/'
@@ -24,6 +23,10 @@ class Api:
         self.good_status = good_status
         self.headers = headers
         self.result_data_parameter = result_data_parameter
+        self.verify = verify
+        if not self.verify:
+            import urllib3
+            urllib3.disable_warnings()
         self.session = requests.Session()
 
     def query(self, path: str, method=GET, **kwargs):
@@ -41,7 +44,7 @@ class Api:
         url = "{}{}".format(self.api_url, path)
         logging.debug(f"API {method} request '{url}'; {kwargs}")
         try:
-            req = self.session.request(method, url, **kwargs)
+            req = self.session.request(method, url, verify=self.verify, **kwargs)
         except requests.exceptions.ConnectTimeout as ex:
             raise ApiConnectionException(f"Connection timout. "
                                          f"Host: {self.api_url}") from ex
